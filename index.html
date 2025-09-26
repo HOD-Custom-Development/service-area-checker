@@ -12,37 +12,20 @@
         body {
             font-family: 'Inter', sans-serif;
         }
-        .tab-active {
-            background-color: #4f46e5;
-            color: white;
-        }
-        .tab-inactive {
-            background-color: #e5e7eb;
-            color: #374151;
-        }
     </style>
 </head>
 <body class="bg-gray-100">
 
     <div class="container mx-auto p-4 sm:p-6 lg:p-8 min-h-screen flex flex-col items-center justify-center">
-        <div class="bg-white rounded-2xl shadow-2xl p-6 md:p-8 w-full max-w-2xl">
+        <div class="bg-white rounded-2xl shadow-2xl p-6 md:p-8 w-full max-w-md">
 
             <div class="text-center mb-8">
                 <img src="./zipper.jpg" alt="Zipper The Service Area Squirrel logo" class="w-64 h-64 mx-auto mb-4 rounded-2xl shadow-md object-cover">
                 <h1 class="text-3xl font-bold text-gray-800">Service Area Checker</h1>
-                <p class="text-gray-500 mt-2">Check service availability or manage service areas.</p>
+                <p class="text-gray-500 mt-2">Enter your ZIP code to check for service availability.</p>
             </div>
 
-            <div class="flex justify-center border-b border-gray-200 mb-6">
-                <button id="user-tab" class="px-6 py-3 font-semibold rounded-t-lg -mb-px transition-colors duration-200" onclick="showView('user')">
-                    Service Checker
-                </button>
-                <button id="admin-tab" class="px-6 py-3 font-semibold rounded-t-lg -mb-px transition-colors duration-200" onclick="showView('admin')">
-                    Admin Panel
-                </button>
-            </div>
-
-            <div id="user-view">
+            <div>
                 <h2 class="text-xl font-semibold text-center text-gray-700 mb-4">Check Service in Your Area</h2>
                 <div class="flex flex-col sm:flex-row gap-3">
                     <input type="text" id="zip-input" placeholder="Enter your ZIP code" class="flex-grow w-full px-4 py-3 text-gray-700 bg-gray-100 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-shadow">
@@ -50,190 +33,92 @@
                 </div>
                 <div id="user-result" class="mt-6 text-center p-4 rounded-lg min-h-[60px]"></div>
             </div>
-
-            <div id="admin-view" class="hidden">
-                <div class="bg-gray-50 p-6 rounded-lg border border-gray-200">
-                    <h2 class="text-xl font-semibold text-gray-700 mb-4">Add New Service Area</h2>
-                    <form id="add-zip-form" class="grid grid-cols-1 md:grid-cols-2 gap-4 items-end">
-                        <div class="col-span-1">
-                            <label for="admin-zip-input" class="block text-sm font-medium text-gray-600">ZIP Code</label>
-                            <input type="text" id="admin-zip-input" required class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500">
-                        </div>
-                        <div class="col-span-1">
-                            <label for="admin-turnaround-input" class="block text-sm font-medium text-gray-600">Turnaround Time</label>
-                            <input type="text" id="admin-turnaround-input" placeholder="e.g., 2-3 business days" required class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500">
-                        </div>
-                        <div class="col-span-1">
-                            <label for="admin-charge-input" class="block text-sm font-medium text-gray-600">Trip Charge ($)</label>
-                            <input type="number" step="0.01" id="admin-charge-input" placeholder="e.g., 25.00" required class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500">
-                        </div>
-                        <div class="col-span-1">
-                             <button type="submit" class="w-full bg-green-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition-transform transform hover:scale-105">Add Area</button>
-                        </div>
-                    </form>
-                </div>
-                
-                <div id="admin-notification" class="mt-4 text-center p-3 rounded-lg min-h-[52px]"></div>
-                
-                <div class="mt-8">
-                    <div class="flex justify-between items-center mb-4">
-                        <h3 class="text-xl font-semibold text-gray-700">Current Service Areas</h3>
-                        <button id="reset-zips-btn" class="bg-yellow-500 text-white font-bold py-2 px-4 rounded-lg hover:bg-yellow-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-yellow-500 transition-transform transform hover:scale-105 text-sm">Reset to Defaults</button>
-                    </div>
-                    <div id="zip-list" class="space-y-3 max-h-64 overflow-y-auto pr-2">
-                        </div>
-                </div>
-            </div>
         </div>
         <footer class="text-center mt-8 text-gray-500 text-sm">
             <p>&copy; 2024 Service Area Solutions. All rights reserved.</p>
         </footer>
     </div>
 
-<script>
+    <script>
         document.addEventListener('DOMContentLoaded', () => {
-            const userView = document.getElementById('user-view');
-            const adminView = document.getElementById('admin-view');
-            const userTab = document.getElementById('user-tab');
-            const adminTab = document.getElementById('admin-tab');
+            // --- DOM Element References ---
             const zipInput = document.getElementById('zip-input');
             const checkZipBtn = document.getElementById('check-zip-btn');
             const userResult = document.getElementById('user-result');
-            const addZipForm = document.getElementById('add-zip-form');
-            const adminZipInput = document.getElementById('admin-zip-input');
-            const adminTurnaroundInput = document.getElementById('admin-turnaround-input');
-            const adminChargeInput = document.getElementById('admin-charge-input');
-            const zipList = document.getElementById('zip-list');
-            const adminNotification = document.getElementById('admin-notification');
             
+            // --- API URL for Netlify Function ---
             const API_URL = '/.netlify/functions/handleZips';
+
+            // --- State Management ---
             let serviceZips = [];
 
+            // --- Function to show notifications to the user ---
+            const showNotification = (message, type) => {
+                userResult.innerHTML = `<p>${message}</p>`;
+                userResult.className = 'mt-6 text-center p-4 rounded-lg '; // Reset classes
+                if (type === 'error') {
+                    userResult.classList.add('bg-red-100', 'text-red-800');
+                } else if (type === 'info') {
+                    userResult.classList.add('bg-blue-100', 'text-blue-800');
+                }
+            };
+            
+            // --- API Function to load ZIPs from the backend ---
             const loadZips = async () => {
                 try {
                     const response = await fetch(API_URL);
-                    if (!response.ok) throw new Error('Failed to fetch ZIPs.');
+                    if (!response.ok) {
+                        // Throw an error with status to debug backend issues
+                        throw new Error(`Failed to fetch ZIPs. Status: ${response.status}`);
+                    }
                     serviceZips = await response.json();
-                    renderZipList();
+                    console.log('Successfully loaded service areas:', serviceZips.length);
                 } catch (error) {
                     console.error(error);
-                    showNotification('Could not load service areas.', 'error', adminNotification);
+                    showNotification('Sorry, we couldn\'t load service areas at the moment. Please try again later.', 'error');
                 }
             };
 
-            const handleAddZip = async (event) => {
-                event.preventDefault();
-                const newZip = adminZipInput.value.trim();
-                const newTurnaround = adminTurnaroundInput.value.trim();
-                const newCharge = adminChargeInput.value.trim();
-
-                if (!newZip || !newTurnaround || !newCharge) {
-                    showNotification('All fields are required.', 'error', adminNotification);
-                    return;
-                }
-                if (serviceZips.some(area => area.zip === newZip)) {
-                    showNotification(`ZIP code ${newZip} already exists.`, 'error', adminNotification);
-                    return;
-                }
-                
-                try {
-                    await fetch(API_URL, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ zip: newZip, turnaround: newTurnaround, charge: newCharge }),
-                    });
-                    showNotification(`Successfully added ZIP code ${newZip}.`, 'success', adminNotification);
-                    addZipForm.reset();
-                    loadZips();
-                } catch (error) {
-                    showNotification('Error adding ZIP code.', 'error', adminNotification);
-                }
-            };
-
-            const handleDeleteZip = async (event) => {
-                const deleteButton = event.target.closest('.delete-btn');
-                if (deleteButton) {
-                    const zipToDelete = deleteButton.dataset.zip;
-                    if (!confirm(`Are you sure you want to delete ZIP code ${zipToDelete}?`)) return;
-                    try {
-                        await fetch(API_URL, {
-                            method: 'DELETE',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ zip: zipToDelete }),
-                        });
-                        showNotification(`Successfully removed ZIP code ${zipToDelete}.`, 'info', adminNotification);
-                        loadZips();
-                    } catch (error) {
-                        showNotification('Error deleting ZIP code.', 'error', adminNotification);
-                    }
-                }
-            };
-
-            const renderZipList = () => {
-                zipList.innerHTML = '';
-                if (serviceZips.length === 0) {
-                    zipList.innerHTML = `<p class="text-gray-500 text-center">No service areas loaded.</p>`;
-                    return;
-                }
-                serviceZips.sort((a, b) => a.zip.localeCompare(b.zip, undefined, { numeric: true }));
-                serviceZips.forEach(area => {
-                    const listItem = document.createElement('div');
-                    listItem.className = 'bg-white p-4 rounded-lg shadow-md flex items-center justify-between border';
-                    listItem.innerHTML = `
-                        <div>
-                            <p class="font-bold text-lg text-indigo-700">${area.zip}</p>
-                            <p class="text-sm text-gray-600">Turnaround: ${area.turnaround}</p>
-                            <p class="text-sm text-gray-600">Trip Charge: $${parseFloat(area.charge || 0).toFixed(2)}</p>
-                        </div>
-                        <button data-zip="${area.zip}" class="delete-btn bg-red-500 text-white p-2 rounded-full hover:bg-red-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition-all">
-                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
-                        </button>`;
-                    zipList.appendChild(listItem);
-                });
-            };
-
-            const showNotification = (message, type, element) => {
-                element.textContent = message;
-                element.className = 'mt-4 text-center p-3 rounded-lg ';
-                element.classList.add(
-                    type === 'success' ? 'bg-green-100' : type === 'error' ? 'bg-red-100' : 'bg-blue-100',
-                    type === 'success' ? 'text-green-800' : type === 'error' ? 'text-red-800' : 'text-blue-800'
-                );
-                setTimeout(() => {
-                    element.textContent = '';
-                    element.className = 'mt-4 text-center p-3 rounded-lg min-h-[52px]';
-                }, 3000);
-            };
-
-            window.showView = (viewName) => {
-                adminView.classList.toggle('hidden', viewName !== 'admin');
-                userView.classList.toggle('hidden', viewName === 'admin');
-                adminTab.classList.toggle('tab-active', viewName === 'admin');
-                userTab.classList.toggle('tab-active', viewName !== 'admin');
-            };
-            
+            // --- Event Handler for Checking a ZIP Code ---
             const handleCheckZip = () => {
                 const queryZip = zipInput.value.trim();
-                if (!queryZip) return;
+                if (!queryZip) {
+                    return; // Don't do anything if input is empty
+                }
+
+                if (serviceZips.length === 0) {
+                    showNotification('Service area data is still loading or unavailable. Please wait a moment.', 'info');
+                    return;
+                }
+
                 const foundArea = serviceZips.find(area => area.zip === queryZip);
                 if (foundArea) {
-                    userResult.innerHTML = `<h3 class="font-bold text-lg text-green-800">Great news! We service your area.</h3><p class="text-green-700 mt-1"><strong>Turnaround Time:</strong> ${foundArea.turnaround}</p><p class="text-green-700"><strong>Trip Charge:</strong> $${parseFloat(foundArea.charge || 0).toFixed(2)}</p>`;
+                    userResult.innerHTML = `
+                        <h3 class="font-bold text-lg text-green-800">Great news! We service your area.</h3>
+                        <p class="text-green-700 mt-1"><strong>Turnaround Time:</strong> ${foundArea.turnaround}</p>
+                        <p class="text-green-700"><strong>Trip Charge:</strong> $${parseFloat(foundArea.charge || 0).toFixed(2)}</p>
+                    `;
                     userResult.className = 'mt-6 text-center p-4 rounded-lg bg-green-100';
                 } else {
-                    userResult.innerHTML = `<h3 class="font-bold text-lg text-red-800">Sorry, we don't service that area yet.</h3><p class="text-red-700 mt-1">Please check back later or contact us for more information.</p>`;
+                     userResult.innerHTML = `
+                        <h3 class="font-bold text-lg text-red-800">Sorry, we don't service that area yet.</h3>
+                        <p class="text-red-700 mt-1">Please check back later or contact us for more information.</p>
+                    `;
                     userResult.className = 'mt-6 text-center p-4 rounded-lg bg-red-100';
                 }
-                zipInput.value = '';
+                 zipInput.value = '';
             };
 
+            // --- Event Listeners Initialization ---
             checkZipBtn.addEventListener('click', handleCheckZip);
-            zipInput.addEventListener('keypress', (e) => e.key === 'Enter' && handleCheckZip());
-            addZipForm.addEventListener('submit', handleAddZip);
-            zipList.addEventListener('click', handleDeleteZip);
-            document.getElementById('reset-zips-btn').style.display = 'none';
+            zipInput.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') {
+                    handleCheckZip();
+                }
+            });
 
+            // --- Initial Load ---
             loadZips();
-            showView('user');
         });
     </script>
 </body>
