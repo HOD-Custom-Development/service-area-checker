@@ -29,56 +29,33 @@ exports.handler = async (event) => {
   }
 
   try {
-    // 1. Fetch all service area data from your Google Sheet
     const response = await sheets.spreadsheets.values.get({
       spreadsheetId: SPREADSHEET_ID,
-      // Read a wider range to accommodate any column order
-      range: `${SHEET_NAME}!A:Z`, 
+      range: `${SHEET_NAME}!A:D`, // Read the first four columns
     });
 
     const rows = response.data.values || [];
-    const headerRow = rows.shift() || []; // Get the first row as headers
+    rows.shift(); // Remove the header row
 
-    // **This is the new, smarter part**
-    // Find the column index for each required header
-    const zipIndex = headerRow.findIndex(h => h.toLowerCase() === 'zip');
-    const cityIndex = headerRow.findIndex(h => h.toLowerCase() === 'city');
-    const turnaroundIndex = headerRow.findIndex(h => h.toLowerCase() === 'turnaround');
-    const chargeIndex = headerRow.findIndex(h => h.toLowerCase() === 'charge');
-
-    // 2. Check if the provided ZIP code is in your service list
-    const foundRow = rows.find(row => row[zipIndex] === zipCode);
+    // Find the row where the first column matches the zip code
+    const foundRow = rows.find(row => row[0] === zipCode);
 
     if (foundRow) {
-      // 3. Build the data object from the found row
-      const foundArea = {
-        zip: foundRow[zipIndex],
-        city: foundRow[cityIndex],
-        turnaround: foundRow[turnaroundIndex],
-        charge: foundRow[chargeIndex],
+      // Build the data object based on a fixed column order
+      const serviceData = {
+        zip: foundRow[0],
+        city: foundRow[1],
+        turnaround: foundRow[2],
+        charge: foundRow[3],
       };
-
-      // If the city is missing in the sheet, fetch it from the external API as a fallback
-      if (!foundArea.city) {
-        try {
-            const cityResponse = await fetch(`https://api.zippopotam.us/us/${zipCode}`);
-            if (cityResponse.ok) {
-                const cityData = await cityResponse.json();
-                foundArea.city = cityData.places[0]['place name'];
-            }
-        } catch (e) {
-            console.log("Could not fetch city from external API.");
-        }
-      }
       
-      // 4. Return the combined data
       return {
         statusCode: 200,
         headers,
-        body: JSON.stringify(foundArea),
+        body: JSON.stringify(serviceData),
       };
     } else {
-      // 5. If the ZIP code is not in the service area, return a not found error
+      // If the ZIP is not found
       return {
         statusCode: 404,
         headers,
