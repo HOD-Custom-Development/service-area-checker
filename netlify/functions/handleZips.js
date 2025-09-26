@@ -10,20 +10,21 @@ const {
 
 const auth = new google.auth.JWT({
   email: GOOGLE_SHEETS_CLIENT_EMAIL,
-  key: GOOGLE_SHEETS_PRIVATE_KEY.replace(/\\n/g, '\n'), // Handle newline characters
+  key: GOOGLE_SHEETS_PRIVATE_KEY.replace(/\\n/g, '\n'), // Handle newline characters properly
   scopes: ['https://www.googleapis.com/auth/spreadsheets'],
 });
 
 const sheets = google.sheets({ version: 'v4', auth });
 
 exports.handler = async (event) => {
-  // Allow requests from any origin (CORS)
+  // Set CORS headers to allow your website to call this function
   const headers = {
     'Access-Control-Allow-Origin': '*',
     'Access-Control-Allow-Headers': 'Content-Type',
     'Access-Control-Allow-Methods': 'GET, POST, DELETE, OPTIONS',
   };
 
+  // Handle pre-flight requests for CORS
   if (event.httpMethod === 'OPTIONS') {
     return { statusCode: 204, headers };
   }
@@ -36,7 +37,7 @@ exports.handler = async (event) => {
           range: `${SHEET_NAME}!A:C`,
         });
         const rows = response.data.values || [];
-        const headers = rows.shift() || [];
+        const headers = rows.shift() || []; // Get and remove header row
         const data = rows.map(row => ({
           [headers[0]]: row[0],
           [headers[1]]: row[1],
@@ -52,7 +53,7 @@ exports.handler = async (event) => {
           valueInputOption: 'USER_ENTERED',
           resource: { values: [[zip, turnaround, charge]] },
         });
-        return { statusCode: 201, headers, body: JSON.stringify({ message: 'ZIP added.' }) };
+        return { statusCode: 201, headers, body: JSON.stringify({ message: 'ZIP added successfully.' }) };
       }
       case 'DELETE': {
         const { zip } = JSON.parse(event.body);
@@ -62,9 +63,11 @@ exports.handler = async (event) => {
         });
         const rows = response.data.values || [];
         const rowIndex = rows.findIndex(row => row[0] === zip);
+
         if (rowIndex === -1) {
-          return { statusCode: 404, headers, body: JSON.stringify({ message: 'ZIP not found.' }) };
+          return { statusCode: 404, headers, body: JSON.stringify({ message: 'ZIP code not found.' }) };
         }
+
         await sheets.spreadsheets.batchUpdate({
           spreadsheetId: SPREADSHEET_ID,
           resource: {
@@ -75,13 +78,13 @@ exports.handler = async (event) => {
             }]
           }
         });
-        return { statusCode: 200, headers, body: JSON.stringify({ message: 'ZIP deleted.' }) };
+        return { statusCode: 200, headers, body: JSON.stringify({ message: 'ZIP deleted successfully.' }) };
       }
       default:
         return { statusCode: 405, headers, body: 'Method Not Allowed' };
     }
   } catch (error) {
-    console.error(error);
+    console.error('Error with Google Sheets API:', error);
     return { statusCode: 500, headers, body: JSON.stringify({ error: 'Internal Server Error' }) };
   }
 };

@@ -91,189 +91,150 @@
     </div>
 
 <script>
-    document.addEventListener('DOMContentLoaded', () => {
-        // --- DOM Element References ---
-        const userView = document.getElementById('user-view');
-        const adminView = document.getElementById('admin-view');
-        const userTab = document.getElementById('user-tab');
-        const adminTab = document.getElementById('admin-tab');
-        const zipInput = document.getElementById('zip-input');
-        const checkZipBtn = document.getElementById('check-zip-btn');
-        const userResult = document.getElementById('user-result');
-        const addZipForm = document.getElementById('add-zip-form');
-        const adminZipInput = document.getElementById('admin-zip-input');
-        const adminTurnaroundInput = document.getElementById('admin-turnaround-input');
-        const adminChargeInput = document.getElementById('admin-charge-input');
-        const zipList = document.getElementById('zip-list');
-        const adminNotification = document.getElementById('admin-notification');
-        
-        // --- API URL for Netlify Function ---
-        const API_URL = '/.netlify/functions/handleZips';
-
-        // --- State Management ---
-        let serviceZips = [];
-
-        // --- API Functions ---
-        const loadZips = async () => {
-            try {
-                const response = await fetch(API_URL);
-                if (!response.ok) throw new Error('Failed to fetch ZIPs.');
-                serviceZips = await response.json();
-                renderZipList();
-            } catch (error) {
-                console.error(error);
-                showNotification('Could not load service areas.', 'error', adminNotification);
-            }
-        };
-
-        const handleAddZip = async (event) => {
-            event.preventDefault();
-            const newZip = adminZipInput.value.trim();
-            const newTurnaround = adminTurnaroundInput.value.trim();
-            const newCharge = adminChargeInput.value.trim();
-
-            if (serviceZips.some(area => area.zip === newZip)) {
-                showNotification(`ZIP code ${newZip} already exists.`, 'error', adminNotification);
-                return;
-            }
+        document.addEventListener('DOMContentLoaded', () => {
+            const userView = document.getElementById('user-view');
+            const adminView = document.getElementById('admin-view');
+            const userTab = document.getElementById('user-tab');
+            const adminTab = document.getElementById('admin-tab');
+            const zipInput = document.getElementById('zip-input');
+            const checkZipBtn = document.getElementById('check-zip-btn');
+            const userResult = document.getElementById('user-result');
+            const addZipForm = document.getElementById('add-zip-form');
+            const adminZipInput = document.getElementById('admin-zip-input');
+            const adminTurnaroundInput = document.getElementById('admin-turnaround-input');
+            const adminChargeInput = document.getElementById('admin-charge-input');
+            const zipList = document.getElementById('zip-list');
+            const adminNotification = document.getElementById('admin-notification');
             
-            try {
-                await fetch(API_URL, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ zip: newZip, turnaround: newTurnaround, charge: newCharge }),
-                });
-                
-                showNotification(`Successfully added ZIP code ${newZip}.`, 'success', adminNotification);
-                addZipForm.reset();
-                loadZips(); // Reload the list from the sheet
-            } catch (error) {
-                console.error(error);
-                showNotification('Error adding ZIP code.', 'error', adminNotification);
-            }
-        };
+            const API_URL = '/.netlify/functions/handleZips';
+            let serviceZips = [];
 
-        const handleDeleteZip = async (event) => {
-            const deleteButton = event.target.closest('.delete-btn');
-            if (deleteButton) {
-                const zipToDelete = deleteButton.dataset.zip;
-                if (!confirm(`Are you sure you want to delete ZIP code ${zipToDelete}?`)) return;
-
+            const loadZips = async () => {
                 try {
-                    await fetch(API_URL, {
-                        method: 'DELETE',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ zip: zipToDelete }),
-                    });
-                    
-                    showNotification(`Successfully removed ZIP code ${zipToDelete}.`, 'info', adminNotification);
-                    loadZips(); // Reload the list from the sheet
+                    const response = await fetch(API_URL);
+                    if (!response.ok) throw new Error('Failed to fetch ZIPs.');
+                    serviceZips = await response.json();
+                    renderZipList();
                 } catch (error) {
                     console.error(error);
-                    showNotification('Error deleting ZIP code.', 'error', adminNotification);
+                    showNotification('Could not load service areas.', 'error', adminNotification);
                 }
-            }
-        };
+            };
 
-        // --- UI Rendering Functions (largely the same) ---
-        const renderZipList = () => {
-            zipList.innerHTML = '';
-            if(serviceZips.length === 0){
-                zipList.innerHTML = `<p class="text-gray-500 text-center">No service areas loaded from Google Sheet.</p>`;
-                return;
-            }
-            serviceZips.sort((a, b) => a.zip.localeCompare(b.zip, undefined, {numeric: true}));
+            const handleAddZip = async (event) => {
+                event.preventDefault();
+                const newZip = adminZipInput.value.trim();
+                const newTurnaround = adminTurnaroundInput.value.trim();
+                const newCharge = adminChargeInput.value.trim();
 
-            serviceZips.forEach(area => {
-                const listItem = document.createElement('div');
-                listItem.className = 'bg-white p-4 rounded-lg shadow-md flex items-center justify-between border';
-                listItem.innerHTML = `
-                    <div>
-                        <p class="font-bold text-lg text-indigo-700">${area.zip}</p>
-                        <p class="text-sm text-gray-600">Turnaround: ${area.turnaround}</p>
-                        <p class="text-sm text-gray-600">Trip Charge: $${parseFloat(area.charge || 0).toFixed(2)}</p>
-                    </div>
-                    <button data-zip="${area.zip}" class="delete-btn bg-red-500 text-white p-2 rounded-full hover:bg-red-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition-all">
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
-                    </button>
-                `;
-                zipList.appendChild(listItem);
-            });
-        };
+                if (!newZip || !newTurnaround || !newCharge) {
+                    showNotification('All fields are required.', 'error', adminNotification);
+                    return;
+                }
+                if (serviceZips.some(area => area.zip === newZip)) {
+                    showNotification(`ZIP code ${newZip} already exists.`, 'error', adminNotification);
+                    return;
+                }
+                
+                try {
+                    await fetch(API_URL, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ zip: newZip, turnaround: newTurnaround, charge: newCharge }),
+                    });
+                    showNotification(`Successfully added ZIP code ${newZip}.`, 'success', adminNotification);
+                    addZipForm.reset();
+                    loadZips();
+                } catch (error) {
+                    showNotification('Error adding ZIP code.', 'error', adminNotification);
+                }
+            };
 
-        const showNotification = (message, type, element) => {
-            element.textContent = message;
-            element.className = 'mt-4 text-center p-3 rounded-lg ';
-            if (type === 'success') {
-                element.classList.add('bg-green-100', 'text-green-800');
-            } else if (type === 'error') {
-                element.classList.add('bg-red-100', 'text-red-800');
-            } else {
-                element.classList.add('bg-blue-100', 'text-blue-800');
-            }
-            setTimeout(() => {
-                element.textContent = '';
-                element.className = 'mt-4 text-center p-3 rounded-lg min-h-[52px]';
-            }, 3000);
-        };
+            const handleDeleteZip = async (event) => {
+                const deleteButton = event.target.closest('.delete-btn');
+                if (deleteButton) {
+                    const zipToDelete = deleteButton.dataset.zip;
+                    if (!confirm(`Are you sure you want to delete ZIP code ${zipToDelete}?`)) return;
+                    try {
+                        await fetch(API_URL, {
+                            method: 'DELETE',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ zip: zipToDelete }),
+                        });
+                        showNotification(`Successfully removed ZIP code ${zipToDelete}.`, 'info', adminNotification);
+                        loadZips();
+                    } catch (error) {
+                        showNotification('Error deleting ZIP code.', 'error', adminNotification);
+                    }
+                }
+            };
 
-        // --- View Switching (no changes needed here) ---
-        window.showView = (viewName) => {
-            if (viewName === 'admin') {
-                adminView.classList.remove('hidden');
-                userView.classList.add('hidden');
-                adminTab.classList.add('tab-active', 'border-indigo-600', 'border-b-2');
-                adminTab.classList.remove('tab-inactive', 'border-transparent');
-                userTab.classList.add('tab-inactive', 'border-transparent');
-                userTab.classList.remove('tab-active', 'border-indigo-600', 'border-b-2');
-            } else {
-                userView.classList.remove('hidden');
-                adminView.classList.add('hidden');
-                userTab.classList.add('tab-active', 'border-indigo-600', 'border-b-2');
-                userTab.classList.remove('tab-inactive', 'border-transparent');
-                adminTab.classList.add('tab-inactive', 'border-transparent');
-                adminTab.classList.remove('tab-active', 'border-indigo-600', 'border-b-2');
-            }
-        };
-        
-        // --- User View Logic (no changes needed) ---
-        const handleCheckZip = () => {
-            const queryZip = zipInput.value.trim();
-            if (!queryZip) {
-                showNotification('Please enter a ZIP code.', 'error', userResult);
-                return;
-            }
-            const foundArea = serviceZips.find(area => area.zip === queryZip);
-            if (foundArea) {
-                userResult.innerHTML = `
-                    <h3 class="font-bold text-lg text-green-800">Great news! We service your area.</h3>
-                    <p class="text-green-700 mt-1"><strong>Turnaround Time:</strong> ${foundArea.turnaround}</p>
-                    <p class="text-green-700"><strong>Trip Charge:</strong> $${parseFloat(foundArea.charge || 0).toFixed(2)}</p>
-                `;
-                userResult.className = 'mt-6 text-center p-4 rounded-lg bg-green-100';
-            } else {
-                 userResult.innerHTML = `
-                    <h3 class="font-bold text-lg text-red-800">Sorry, we don't service that area yet.</h3>
-                    <p class="text-red-700 mt-1">Please check back later or contact us for more information.</p>
-                `;
-                userResult.className = 'mt-6 text-center p-4 rounded-lg bg-red-100';
-            }
-             zipInput.value = '';
-        };
+            const renderZipList = () => {
+                zipList.innerHTML = '';
+                if (serviceZips.length === 0) {
+                    zipList.innerHTML = `<p class="text-gray-500 text-center">No service areas loaded.</p>`;
+                    return;
+                }
+                serviceZips.sort((a, b) => a.zip.localeCompare(b.zip, undefined, { numeric: true }));
+                serviceZips.forEach(area => {
+                    const listItem = document.createElement('div');
+                    listItem.className = 'bg-white p-4 rounded-lg shadow-md flex items-center justify-between border';
+                    listItem.innerHTML = `
+                        <div>
+                            <p class="font-bold text-lg text-indigo-700">${area.zip}</p>
+                            <p class="text-sm text-gray-600">Turnaround: ${area.turnaround}</p>
+                            <p class="text-sm text-gray-600">Trip Charge: $${parseFloat(area.charge || 0).toFixed(2)}</p>
+                        </div>
+                        <button data-zip="${area.zip}" class="delete-btn bg-red-500 text-white p-2 rounded-full hover:bg-red-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition-all">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                        </button>`;
+                    zipList.appendChild(listItem);
+                });
+            };
 
-        // --- Event Listeners Initialization ---
-        checkZipBtn.addEventListener('click', handleCheckZip);
-        zipInput.addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') handleCheckZip();
+            const showNotification = (message, type, element) => {
+                element.textContent = message;
+                element.className = 'mt-4 text-center p-3 rounded-lg ';
+                element.classList.add(
+                    type === 'success' ? 'bg-green-100' : type === 'error' ? 'bg-red-100' : 'bg-blue-100',
+                    type === 'success' ? 'text-green-800' : type === 'error' ? 'text-red-800' : 'text-blue-800'
+                );
+                setTimeout(() => {
+                    element.textContent = '';
+                    element.className = 'mt-4 text-center p-3 rounded-lg min-h-[52px]';
+                }, 3000);
+            };
+
+            window.showView = (viewName) => {
+                adminView.classList.toggle('hidden', viewName !== 'admin');
+                userView.classList.toggle('hidden', viewName === 'admin');
+                adminTab.classList.toggle('tab-active', viewName === 'admin');
+                userTab.classList.toggle('tab-active', viewName !== 'admin');
+            };
+            
+            const handleCheckZip = () => {
+                const queryZip = zipInput.value.trim();
+                if (!queryZip) return;
+                const foundArea = serviceZips.find(area => area.zip === queryZip);
+                if (foundArea) {
+                    userResult.innerHTML = `<h3 class="font-bold text-lg text-green-800">Great news! We service your area.</h3><p class="text-green-700 mt-1"><strong>Turnaround Time:</strong> ${foundArea.turnaround}</p><p class="text-green-700"><strong>Trip Charge:</strong> $${parseFloat(foundArea.charge || 0).toFixed(2)}</p>`;
+                    userResult.className = 'mt-6 text-center p-4 rounded-lg bg-green-100';
+                } else {
+                    userResult.innerHTML = `<h3 class="font-bold text-lg text-red-800">Sorry, we don't service that area yet.</h3><p class="text-red-700 mt-1">Please check back later or contact us for more information.</p>`;
+                    userResult.className = 'mt-6 text-center p-4 rounded-lg bg-red-100';
+                }
+                zipInput.value = '';
+            };
+
+            checkZipBtn.addEventListener('click', handleCheckZip);
+            zipInput.addEventListener('keypress', (e) => e.key === 'Enter' && handleCheckZip());
+            addZipForm.addEventListener('submit', handleAddZip);
+            zipList.addEventListener('click', handleDeleteZip);
+            document.getElementById('reset-zips-btn').style.display = 'none';
+
+            loadZips();
+            showView('user');
         });
-        addZipForm.addEventListener('submit', handleAddZip);
-        zipList.addEventListener('click', handleDeleteZip);
-        document.getElementById('reset-zips-btn').style.display = 'none';
-
-        // --- Initial Load ---
-        loadZips();
-        showView('user');
-    });
-</script>
+    </script>
 </body>
 </html>
