@@ -1,125 +1,52 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Service Area Zip Code Checker</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <style>
-        body {
-            font-family: 'Inter', sans-serif;
-        }
-    </style>
-</head>
-<body class="bg-gray-100">
-
-    <div class="container mx-auto p-4 sm:p-6 lg:p-8 min-h-screen flex flex-col items-center justify-center">
-        <div class="bg-white rounded-2xl shadow-2xl p-6 md:p-8 w-full max-w-md">
-
-            <div class="text-center mb-8">
-                <img src="./zipper.jpg" alt="Zipper The Service Area Squirrel logo" class="w-64 h-64 mx-auto mb-4 rounded-2xl shadow-md object-cover">
-                <h1 class="text-3xl font-bold text-gray-800">Service Area Checker</h1>
-                <p class="text-gray-500 mt-2">Enter your ZIP code to check for service availability.</p>
-            </div>
-
-            <div>
-                <h2 class="text-xl font-semibold text-center text-gray-700 mb-4">Check Service in Your Area</h2>
-                <div class="flex flex-col sm:flex-row gap-3">
-                    <input type="text" id="zip-input" placeholder="Enter your ZIP code" class="flex-grow w-full px-4 py-3 text-gray-700 bg-gray-100 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-shadow">
-                    <button id="check-zip-btn" class="w-full sm:w-auto bg-indigo-600 text-white font-bold py-3 px-6 rounded-lg hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-transform transform hover:scale-105">Check Availability</button>
-                </div>
-                <div id="user-result" class="mt-6 text-center p-4 rounded-lg min-h-[60px]"></div>
-            </div>
-        </div>
-        <footer class="text-center mt-8 text-gray-500 text-sm">
-            <p>&copy; 2024 Service Area Solutions. All rights reserved.</p>
-        </footer>
-    </div>
-
-    <script>
+<script>
         document.addEventListener('DOMContentLoaded', () => {
-            // --- DOM Element References ---
             const zipInput = document.getElementById('zip-input');
             const checkZipBtn = document.getElementById('check-zip-btn');
             const userResult = document.getElementById('user-result');
             
-            // --- API URL for Netlify Function ---
-            const API_URL = '/.netlify/functions/handleZips';
+            // Note: This API URL now includes a query parameter
+            const API_URL_BASE = '/.netlify/functions/handleZips';
 
-            // --- State Management ---
-            let serviceZips = [];
-
-            // --- Function to show notifications to the user ---
-            const showNotification = (message, type) => {
-                userResult.innerHTML = `<p>${message}</p>`;
-                userResult.className = 'mt-6 text-center p-4 rounded-lg '; // Reset classes
-                if (type === 'error') {
-                    userResult.classList.add('bg-red-100', 'text-red-800');
-                } else if (type === 'info') {
-                    userResult.classList.add('bg-blue-100', 'text-blue-800');
-                }
-            };
-            
-            // --- API Function to load ZIPs from the backend ---
-            const loadZips = async () => {
-                try {
-                    const response = await fetch(API_URL);
-                    if (!response.ok) {
-                        // Throw an error with status to debug backend issues
-                        throw new Error(`Failed to fetch ZIPs. Status: ${response.status}`);
-                    }
-                    serviceZips = await response.json();
-                    console.log('Successfully loaded service areas:', serviceZips.length);
-                } catch (error) {
-                    console.error(error);
-                    showNotification('Sorry, we couldn\'t load service areas at the moment. Please try again later.', 'error');
-                }
-            };
-
-            // --- Event Handler for Checking a ZIP Code ---
-            const handleCheckZip = () => {
+            const handleCheckZip = async () => {
                 const queryZip = zipInput.value.trim();
-                if (!queryZip) {
-                    return; // Don't do anything if input is empty
-                }
+                if (!queryZip) return;
 
-                if (serviceZips.length === 0) {
-                    showNotification('Service area data is still loading or unavailable. Please wait a moment.', 'info');
-                    return;
-                }
+                userResult.innerHTML = `<p class="text-gray-500">Checking...</p>`;
+                userResult.className = 'mt-6 text-center p-4 rounded-lg bg-gray-100';
 
-                const foundArea = serviceZips.find(area => area.zip === queryZip);
-                if (foundArea) {
-                    userResult.innerHTML = `
-                        <h3 class="font-bold text-lg text-green-800">Great news! We service your area.</h3>
-                        <p class="text-green-700 mt-1"><strong>Turnaround Time:</strong> ${foundArea.turnaround}</p>
-                        <p class="text-green-700"><strong>Trip Charge:</strong> $${parseFloat(foundArea.charge || 0).toFixed(2)}</p>
-                    `;
-                    userResult.className = 'mt-6 text-center p-4 rounded-lg bg-green-100';
-                } else {
-                     userResult.innerHTML = `
-                        <h3 class="font-bold text-lg text-red-800">Sorry, we don't service that area yet.</h3>
-                        <p class="text-red-700 mt-1">Please check back later or contact us for more information.</p>
-                    `;
+                try {
+                    // We now send the zip to the backend to get a specific response
+                    const response = await fetch(`${API_URL_BASE}?zip=${queryZip}`);
+                    const data = await response.json();
+
+                    if (response.ok) {
+                        // Success! We service this area.
+                        userResult.innerHTML = `
+                            <h3 class="font-bold text-lg text-green-800">Great news! We service ${data.city || 'your area'}.</h3>
+                            <p class="text-green-700 mt-1"><strong>Turnaround Time:</strong> ${data.turnaround}</p>
+                            <p class="text-green-700"><strong>Trip Charge:</strong> $${parseFloat(data.charge || 0).toFixed(2)}</p>
+                        `;
+                        userResult.className = 'mt-6 text-center p-4 rounded-lg bg-green-100';
+                    } else {
+                        // Area not serviced (404) or other error from our function
+                        userResult.innerHTML = `
+                            <h3 class="font-bold text-lg text-red-800">${data.error}</h3>
+                            <p class="text-red-700 mt-1">Please check back later or contact us.</p>
+                        `;
+                        userResult.className = 'mt-6 text-center p-4 rounded-lg bg-red-100';
+                    }
+                } catch (error) {
+                    // A network error occurred
+                    console.error('Fetch error:', error);
+                    userResult.innerHTML = `<h3 class="font-bold text-lg text-red-800">Something went wrong. Please try again.</h3>`;
                     userResult.className = 'mt-6 text-center p-4 rounded-lg bg-red-100';
                 }
-                 zipInput.value = '';
+                zipInput.value = '';
             };
 
-            // --- Event Listeners Initialization ---
             checkZipBtn.addEventListener('click', handleCheckZip);
             zipInput.addEventListener('keypress', (e) => {
-                if (e.key === 'Enter') {
-                    handleCheckZip();
-                }
+                if (e.key === 'Enter') handleCheckZip();
             });
-
-            // --- Initial Load ---
-            loadZips();
         });
     </script>
-</body>
-</html>

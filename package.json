@@ -2,6 +2,7 @@
   "name": "zipper-service-checker",
   "version": "1.0.0",
   "dependencies": {
-    "googleapis": "^100.0.0"
+    "googleapis": "^100.0.0",
+    "node-fetch": "^2.6.1"
   }
 }
